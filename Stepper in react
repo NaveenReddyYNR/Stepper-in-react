@@ -1,0 +1,970 @@
+import React, { useState, useEffect } from 'react';
+import { Typography, TextField, Button, Stepper, Step, StepLabel, Grid, Container, MenuItem } from '@mui/material';
+import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
+import { useNavigate, useLocation } from 'react-router-dom';
+import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
+import { useForm, useFieldArray, Controller, FormProvider, useFormContext } from 'react-hook-form';
+import Autocomplete from '@mui/material/Autocomplete';
+import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
+import { getAllCoins } from '../../../services/coinService';
+import { createMasterAccount } from '../../../services/masterService';
+import ErrorAlert from '../../../components/alert/ErrorAlert';
+import SuccessAlert from '../../../components/alert/SuccessAlert';
+import Loader from '../../../components/loader/Loader';
+
+function getSteps() {
+  return ['Profile Details', 'Contact Details', 'Bank and Wallet'];
+}
+
+const Step1 = ({ coins }) => {
+  const {
+    control,
+    register,
+    formState: { errors },
+  } = useFormContext();
+  console.log(errors);
+
+  const { fields, append, remove } = useFieldArray({
+    control,
+    name: 'walletAddress',
+  });
+
+  return (
+    <>
+      <center>
+        <h3 style={{ marginTop: 35, marginBottom: 25, fontStyle: 'normal' }}>
+          To create new Master Account, please fill in the following fields
+        </h3>
+      </center>
+      <Controller
+        control={control}
+        name="firstName"
+        rules={{
+          required: 'First Name is Required.',
+          minLength: { value: 3, message: 'First Name must have at least 3 characters' },
+        }}
+        render={({ field }) => (
+          <TextField
+            id="first-name"
+            // required
+            label="First Name *"
+            variant="outlined"
+            placeholder="Enter Your First Name"
+            fullWidth
+            margin="normal"
+            {...field}
+            error={Boolean(errors?.firstName)}
+            helperText={errors.firstName?.message}
+          />
+        )}
+      />
+
+      <Controller
+        control={control}
+        name="lastName"
+        rules={{
+          required: 'Last Name is Required.',
+          minLength: { value: 3, message: 'Last Name must have at least 3 characters' },
+        }}
+        render={({ field }) => (
+          <TextField
+            id="last-name"
+            label="Last Name *"
+            variant="outlined"
+            placeholder="Enter Your Last Name"
+            fullWidth
+            margin="normal"
+            {...field}
+            error={Boolean(errors?.lastName)}
+            helperText={errors.lastName?.message}
+          />
+        )}
+      />
+
+      <Controller
+        control={control}
+        name="username"
+        rules={{
+          required: 'User Name is required.',
+          minLength: {
+            value: 2,
+            message: 'User Name must have at least 2 to 32 characters',
+          },
+          maxLength: 32,
+        }}
+        render={({ field }) => (
+          <TextField
+            id="user name"
+            label="User Name *"
+            variant="outlined"
+            placeholder="Enter Your User Name"
+            fullWidth
+            margin="normal"
+            {...field}
+            error={Boolean(errors?.username)}
+            helperText={errors.username?.message}
+          />
+        )}
+      />
+      <Controller
+        control={control}
+        name="phone"
+        rules={{
+          required: 'Phone Number is required.',
+          minLength: 10,
+          maxLength: { value: 32, message: 'Phone Number must have at least 10 to 16 characters' },
+          pattern: {
+            value: /^((0091)|(\+91)|0)[789]{1}\d{9}$/,
+            message: 'Enter a valid phone number eg: +919876543210',
+          },
+        }}
+        render={({ field }) => (
+          <TextField
+            label="Mobile Number *"
+            variant="outlined"
+            placeholder="Enter Mobile Number eg: +919876543210"
+            fullWidth
+            margin="normal"
+            {...field}
+            error={Boolean(errors?.phone)}
+            helperText={errors.phone?.message}
+          />
+        )}
+      />
+      <Controller
+        name="bankVA"
+        rules={{
+          required: 'BankVA is required.',
+          minLength: { value: 9, message: 'BankVA Number must have at least 9 to 18 characters' },
+          maxLength: 18,
+        }}
+        render={({ field }) => (
+          <TextField
+            label="BankVA *"
+            variant="outlined"
+            placeholder="BankVA"
+            fullWidth
+            margin="normal"
+            {...field}
+            error={Boolean(errors?.bankVA)}
+            helperText={errors.bankVA?.message}
+          />
+        )}
+      />
+
+      <ul style={{ width: '100%' }}>
+        {fields.map((item, index) => {
+          return (
+            <li
+              style={{
+                listStyle: 'none',
+                display: 'flex',
+                width: '100%',
+
+                justifyContent: 'space-between',
+              }}
+            >
+              <Grid style={{ display: 'flex', width: '450%' }}>
+                <Controller
+                  name={`walletAddress.${index}.instrument`}
+                  fullWidth
+                  rules={{ required: 'Address field is required.' }}
+                  style={{ marginTop: 25 }}
+                  render={({ field }) => (
+                    <TextField
+                      label="Select Coin *"
+                      placeholder="Please select your currency"
+                      fullWidth
+                      select
+                      // style={{ marginLeft: 20 }}
+                      margin="normal"
+                      {...field}
+                      error={Boolean(errors?.instrument)}
+                      helperText={errors.instrument?.message}
+                    >
+                      {coins.map((option, index) => (
+                        <MenuItem key={index} value={option}>
+                          {option}
+                        </MenuItem>
+                      ))}
+                    </TextField>
+                  )}
+                />
+                <Controller
+                  name={`walletAddress.${index}.address`}
+                  rules={{ required: 'Wallet Address is Required.' }}
+                  fullWidth
+                  style={{ marginTop: 25 }}
+                  render={({ field }) => (
+                    <TextField
+                      label="Wallet Address *"
+                      placeholder="Wallet Address here"
+                      fullWidth
+                      style={{ marginLeft: 20 }}
+                      margin="normal"
+                      {...field}
+                      error={Boolean(errors?.address)}
+                      helperText={errors.address?.message}
+                    />
+                  )}
+                />
+              </Grid>
+              <Grid
+                style={{
+                  width: '100%',
+                  display: 'flex',
+
+                  justifyContent: 'space-between',
+                }}
+              >
+                <Button
+                  style={{ display: 'flex', marginTop: 20, marginLeft: 10 }}
+                  type="button"
+                  onClick={() => remove(index)}
+                  disabled={index === 0}
+                >
+                  <DeleteOutlineIcon />
+                </Button>
+
+                {index === fields.length - 1 && (
+                  <Button
+                    label="ADD"
+                    style={{ marginTop: 25, alignItems: 'left' }}
+                    type="button"
+                    onClick={() => {
+                      append({ instrument: '', address: '' });
+                    }}
+                  >
+                    <AddCircleOutlineIcon />
+                  </Button>
+                )}
+              </Grid>
+            </li>
+          );
+        })}
+      </ul>
+
+      <Controller
+        name="primaryPAN"
+        rules={{
+          required: 'Primary PAN Number is required.',
+          minLength: {
+            value: 10,
+            message: 'PAN Number must have at least 10 characters',
+          },
+          maxLength: 10,
+        }}
+        render={({ field }) => (
+          <TextField
+            label="PAN *"
+            variant="outlined"
+            placeholder="PAN"
+            fullWidth
+            margin="normal"
+            {...field}
+            error={Boolean(errors?.primaryPAN)}
+            helperText={errors.primaryPAN?.message}
+          />
+        )}
+      />
+
+      <Controller
+        name="primaryLegalName"
+        rules={{
+          required: 'Primary Legal Name is required.',
+          minLength: { value: 2, message: 'Primary Legal Name must have at least 2 to 32 characters' },
+          maxLength: 32,
+        }}
+        render={({ field }) => (
+          <TextField
+            label="Primary Legal Name *"
+            variant="outlined"
+            placeholder="Primary Legal Name"
+            fullWidth
+            margin="normal"
+            {...field}
+            error={Boolean(errors?.primaryLegalName)}
+            helperText={errors.primaryLegalName?.message}
+          />
+        )}
+      />
+
+      <Controller
+        name="address"
+        render={({ field }) => (
+          <TextField label="Address" variant="outlined" placeholder="Address" fullWidth margin="normal" {...field} />
+        )}
+      />
+
+      {/* <Controller
+        name="kyc"
+        render={({ field }) => (
+          <TextField label="KYC" variant="outlined" placeholder="KYC" fullWidth margin="normal" {...field} />
+        )}
+      /> */}
+
+      <Controller
+        name="vaIfscCode"
+        rules={{
+          required: 'VA IFSC Code is required.',
+          minLength: { value: 11, message: 'VA IFSC Code must have 11 characters' },
+          maxLength: 11,
+        }}
+        render={({ field }) => (
+          <TextField
+            label="IFSC *"
+            variant="outlined"
+            placeholder="IFSC"
+            fullWidth
+            margin="normal"
+            {...field}
+            error={Boolean(errors?.vaIfscCode)}
+            helperText={errors.vaIfscCode?.message}
+          />
+        )}
+      />
+
+      <Controller
+        name="primaryGSTIN"
+        rules={{
+          required: 'Primary GST Number is required.',
+          minLength: { value: 15, message: 'Primary GST Number must have 15 characters' },
+          maxLength: { value: 15, message: 'Primary GST Number must have 15 characters' },
+        }}
+        render={({ field }) => (
+          <TextField
+            label="GST *"
+            variant="outlined"
+            placeholder="GST"
+            fullWidth
+            margin="normal"
+            {...field}
+            error={Boolean(errors?.primaryGSTIN)}
+            helperText={errors.primaryGSTIN?.message}
+          />
+        )}
+      />
+
+      <Controller
+        name="primaryTAN"
+        rules={{
+          required: 'Primary TAN Number is required.',
+          minLength: { value: 10, message: 'Primary TAN Number must have 10 characters' },
+          maxLength: 10,
+        }}
+        render={({ field }) => (
+          <TextField
+            label="TAN *"
+            variant="outlined"
+            placeholder="TAN"
+            fullWidth
+            margin="normal"
+            {...field}
+            error={Boolean(errors?.primaryTAN)}
+            helperText={errors.primaryTAN?.message}
+          />
+        )}
+      />
+
+      <Controller
+        name="primaryTradeName"
+        rules={{
+          required: 'Primary TradeName  is required.',
+          minLength: { value: 2, message: 'Primary Trade Name must have at least 2 to 32 characters' },
+          maxLength: 32,
+        }}
+        render={({ field }) => (
+          <TextField
+            label="Trade Name *"
+            variant="outlined"
+            placeholder="Trade Name"
+            fullWidth
+            margin="normal"
+            {...field}
+            error={Boolean(errors?.primaryTradeName)}
+            helperText={errors.primaryTradeName?.message}
+          />
+        )}
+      />
+    </>
+  );
+};
+const Step2 = () => {
+  const {
+    formState: { errors },
+  } = useFormContext();
+
+  return (
+    <>
+      <Controller
+        name="poc"
+        rules={{
+          required: 'POC  is required.',
+          minLength: { value: 2, message: 'POC must have at least 2 to 32 characters' },
+          maxLength: 32,
+        }}
+        render={({ field }) => (
+          <TextField
+            label="POC *"
+            variant="outlined"
+            placeholder="POC"
+            fullWidth
+            margin="normal"
+            {...field}
+            error={Boolean(errors?.poc)}
+            helperText={errors.poc?.message}
+          />
+        )}
+      />
+
+      <Controller
+        name="email"
+        render={({ field }) => (
+          <TextField
+            label="Email *"
+            variant="outlined"
+            type="email"
+            placeholder="Email"
+            fullWidth
+            margin="normal"
+            {...field}
+          />
+        )}
+      />
+      <Controller
+        name="primaryAddressLine1"
+        rules={{
+          required: 'Primary Address Line1  is required.',
+          minLength: { value: 5, message: 'Primary Address Line1 must have at least 5 characters' },
+        }}
+        render={({ field }) => (
+          <TextField
+            label="Address Line1 *"
+            variant="outlined"
+            placeholder="Address Line1"
+            fullWidth
+            margin="normal"
+            {...field}
+            error={Boolean(errors?.primaryAddressLine1)}
+            helperText={errors.primaryAddressLine1?.message}
+          />
+        )}
+      />
+
+      <Controller
+        name="primaryAddressLine2"
+        render={({ field }) => (
+          <TextField
+            label="Address Line2"
+            variant="outlined"
+            placeholder="Address Line2"
+            fullWidth
+            margin="normal"
+            {...field}
+          />
+        )}
+      />
+
+      <Controller
+        name="primaryCity"
+        rules={{
+          required: 'Primary City is required.',
+          minLength: { value: 2, message: 'Primary City must have at least 2 characters' },
+        }}
+        render={({ field }) => (
+          <TextField
+            label="City *"
+            variant="outlined"
+            placeholder="City"
+            fullWidth
+            margin="normal"
+            {...field}
+            error={Boolean(errors?.primaryCity)}
+            helperText={errors.primaryCity?.message}
+          />
+        )}
+      />
+
+      <Controller
+        name="primaryPincode"
+        rules={{
+          required: 'Primary Pincode is required.',
+          minLength: { value: 6, message: 'Primary Pincode must have at least 6  characters' },
+          maxLength: 6,
+        }}
+        render={({ field }) => (
+          <TextField
+            label="Pincode *"
+            variant="outlined"
+            placeholder="Pincode"
+            fullWidth
+            margin="normal"
+            {...field}
+            error={Boolean(errors?.primaryPincode)}
+            helperText={errors.primaryPincode?.message}
+          />
+        )}
+      />
+
+      <Controller
+        name="primaryState"
+        rules={{
+          required: 'Primary State is required.',
+          minLength: { value: 2, message: 'Primary State must have at least 2  characters' },
+        }}
+        render={({ field }) => (
+          <TextField
+            label="State *"
+            variant="outlined"
+            placeholder="State"
+            fullWidth
+            margin="normal"
+            {...field}
+            error={Boolean(errors?.primaryState)}
+            helperText={errors.primaryState?.message}
+          />
+        )}
+      />
+
+      <Controller
+        name="shippingGSTIN"
+        render={({ field }) => (
+          <TextField
+            label="Shipping GST"
+            variant="outlined"
+            placeholder="Shipping GST"
+            fullWidth
+            margin="normal"
+            {...field}
+          />
+        )}
+      />
+
+      <Controller
+        name="shippingLegalName"
+        render={({ field }) => (
+          <TextField
+            label="Shipping Leagal Name"
+            variant="outlined"
+            placeholder="Shipping Leagal Name"
+            fullWidth
+            margin="normal"
+            {...field}
+          />
+        )}
+      />
+
+      <Controller
+        name="shippingTradeName"
+        render={({ field }) => (
+          <TextField
+            label="Shipping Trade Name"
+            variant="outlined"
+            placeholder="Shipping Trade Name"
+            fullWidth
+            margin="normal"
+            {...field}
+          />
+        )}
+      />
+
+      <Controller
+        name="shippingAddressLine1"
+        render={({ field }) => (
+          <TextField
+            label="Shipping Address Line1"
+            variant="outlined"
+            placeholder="Shipping Address Line1"
+            fullWidth
+            margin="normal"
+            {...field}
+          />
+        )}
+      />
+
+      <Controller
+        name="shippingAddressLine2"
+        render={({ field }) => (
+          <TextField
+            label="Shipping Address Line2"
+            variant="outlined"
+            placeholder="Shipping Address Line2"
+            fullWidth
+            margin="normal"
+            {...field}
+          />
+        )}
+      />
+
+      <Controller
+        name="shippingLocation"
+        render={({ field }) => (
+          <TextField
+            label="Shipping Location"
+            variant="outlined"
+            placeholder="Shipping Location"
+            fullWidth
+            margin="normal"
+            {...field}
+          />
+        )}
+      />
+
+      <Controller
+        name="shippingPincode"
+        render={({ field }) => (
+          <TextField
+            label="Shipping Pincode"
+            variant="outlined"
+            placeholder="Shipping Pincode"
+            fullWidth
+            margin="normal"
+            {...field}
+          />
+        )}
+      />
+    </>
+  );
+};
+const Step3 = ({ coins }) => {
+  const {
+    control,
+    register,
+    formState: { errors },
+  } = useFormContext();
+  const { fields, append, remove } = useFieldArray({
+    control,
+    name: 'destWalletAddress',
+  });
+  return (
+    <>
+      <Controller
+        name="shippingState"
+        rules={{
+          required: 'Shipping state is Required.',
+          minLength: { value: 2, message: 'Shipping state must be at least 2 characters' },
+        }}
+        render={({ field }) => (
+          <TextField
+            label="Shipping State *"
+            variant="outlined"
+            placeholder="Shipping State"
+            fullWidth
+            margin="normal"
+            {...field}
+            error={Boolean(errors?.shippingState)}
+            helperText={errors.shippingState?.message}
+          />
+        )}
+      />
+      <Controller
+        name="destBankAcc"
+        rules={{
+          required: 'Dest Bank Account is Required.',
+          minLength: { value: 9, message: 'Dest Bank Account must have at least 9 to 18 characters' },
+          maxLength: 18,
+        }}
+        render={({ field }) => (
+          <TextField
+            label="Destnation Bank Account *"
+            variant="outlined"
+            placeholder="Destnation Bank Account"
+            fullWidth
+            margin="normal"
+            {...field}
+            error={Boolean(errors?.destBankAcc)}
+            helperText={errors.destBankAcc?.message}
+          />
+        )}
+      />
+      <Controller
+        name="destinationIfscCode"
+        rules={{
+          required: 'Dest IFSC Code Required.',
+          minLength: { value: 11, message: 'Dest IFSC Code must have 11 characters' },
+          maxLength: 11,
+        }}
+        render={({ field }) => (
+          <TextField
+            label="Destination IFSC *"
+            variant="outlined"
+            placeholder="Destination IFSC"
+            fullWidth
+            margin="normal"
+            {...field}
+            error={Boolean(errors?.destinationIfscCode)}
+            helperText={errors.destinationIfscCode?.message}
+          />
+        )}
+      />
+      <ul style={{ width: '100%' }}>
+        {fields.map((item, index) => {
+          return (
+            <li
+              style={{
+                listStyle: 'none',
+                display: 'flex',
+                width: '100%',
+
+                justifyContent: 'space-between',
+              }}
+            >
+              <Grid style={{ display: 'flex', width: '450%' }}>
+                <Controller
+                  name={`destWalletAddress.${index}.instrument`}
+                  fullWidth
+                  rules={{ required: 'Address field is required.' }}
+                  style={{ marginTop: 25 }}
+                  render={({ field }) => (
+                    <TextField
+                      label="Select Coin *"
+                      placeholder="Please select your currency"
+                      fullWidth
+                      select
+                      // style={{ marginLeft: 20 }}
+                      margin="normal"
+                      {...field}
+                      error={Boolean(errors?.instrument)}
+                      helperText={errors.instrument?.message}
+                    >
+                      {coins.map((option, index) => (
+                        <MenuItem key={index} value={option}>
+                          {option}
+                        </MenuItem>
+                      ))}
+                    </TextField>
+                  )}
+                />
+                <Controller
+                  name={`destWalletAddress.${index}.address`}
+                  rules={{ required: 'Dest Wallet Address is Required.' }}
+                  fullWidth
+                  style={{ marginTop: 25 }}
+                  render={({ field }) => (
+                    <TextField
+                      label="Dest Wallet Address *"
+                      placeholder="Dest Wallet Address here"
+                      fullWidth
+                      style={{ marginLeft: 20 }}
+                      margin="normal"
+                      {...field}
+                      error={Boolean(errors?.address)}
+                      helperText={errors.address?.message}
+                    />
+                  )}
+                />
+              </Grid>
+              <Grid
+                style={{
+                  width: '100%',
+                  display: 'flex',
+
+                  justifyContent: 'space-between',
+                }}
+              >
+                <Button
+                  style={{ display: 'flex', marginTop: 20, marginLeft: 10 }}
+                  type="button"
+                  onClick={() => remove(index)}
+                  disabled={index === 0}
+                >
+                  <DeleteOutlineIcon />
+                </Button>
+
+                {index === fields.length - 1 && (
+                  <Button
+                    label="ADD"
+                    style={{ marginTop: 25, alignItems: 'left' }}
+                    type="button"
+                    onClick={() => {
+                      append({ instrument: '', address: '' });
+                    }}
+                  >
+                    <AddCircleOutlineIcon />
+                  </Button>
+                )}
+              </Grid>
+            </li>
+          );
+        })}
+      </ul>
+    </>
+  );
+};
+
+function getStepContent(step, coins) {
+  switch (step) {
+    case 0:
+      return <Step1 coins={coins} />;
+    case 1:
+      return <Step2 />;
+    case 2:
+      return <Step3 coins={coins} />;
+    default:
+      return 'unknown step';
+  }
+}
+
+const CreateMasterAccount = () => {
+  const methods = useForm({
+    defaultValues: {
+      firstName: '',
+      lastName: '',
+      username: '',
+      phone: '',
+      bankVA: '',
+      walletAddress: [{ instrument: '', address: '' }],
+      primaryPAN: '',
+      primaryLegalName: '',
+      address: '',
+      // kyc: '',
+      vaIfscCode: '',
+      primaryGSTIN: '',
+      primaryTAN: '',
+      primaryTradeName: '',
+      poc: '',
+      email: '',
+      primaryAddressLine1: '',
+      primaryAddressLine2: '',
+      primaryCity: '',
+      primaryPincode: '',
+      primaryState: '',
+      shippingGSTIN: '',
+      shippingLegalName: '',
+      shippingTradeName: '',
+      shippingAddressLine1: '',
+      shippingAddressLine2: '',
+      shippingLocation: '',
+      shippingPincode: '',
+      shippingState: '',
+      destBankAcc: '',
+      destinationIfscCode: '',
+      destWalletAddress: [{ instrument: '', address: '' }],
+    },
+  });
+  const [activeStep, setActiveStep] = useState(0);
+  const [coins, setCoins] = useState([]);
+  const [payload, setPayload] = useState(null);
+  const [isError, setError] = useState(false);
+  const [alertMsg, setAlertMsg] = useState('');
+  const [isLoading, setLoading] = useState(false);
+  const [isSuccess, setSuccess] = useState(false);
+  const steps = getSteps();
+
+  const isStepOptional = (step) => {
+    return step === 1 || step === 2;
+  };
+  const isStepFalied = () => {
+    return Boolean(Object.keys(methods.formState.errors).length);
+  };
+
+  const handleNext = async (data) => {
+    if (activeStep === steps.length - 1) {
+      setLoading(true);
+      console.log(data);
+      const res = await createMasterAccount(data);
+      console.log(res);
+      if (res.status === 200) {
+        setActiveStep(steps.length);
+        setSuccess(true);
+        setAlertMsg(res?.data?.message || 'Master added successfully');
+        setLoading(false);
+      }
+      if (res.code === 'ERR_BAD_REQUEST') {
+        setError(true);
+        setAlertMsg(res?.response?.data?.message || 'Something went wrong');
+        setLoading(false);
+      }
+      if (res.code === 'ERR_NETWORK') {
+        setError(true);
+        setAlertMsg('Something went wrong');
+        setLoading(false);
+      }
+    } else {
+      setActiveStep(activeStep + 1);
+    }
+    setLoading(false);
+  };
+
+  const handleSubmit = (data) => {
+    console.log(data);
+  };
+  const handleBack = () => {
+    setActiveStep(activeStep - 1);
+  };
+
+  const getCoinList = async () => {
+    const res = await getAllCoins();
+    if (res.status === 200) {
+      setCoins(res.data.data.Coins);
+    }
+  };
+
+  useEffect(() => {
+    getCoinList();
+  }, []);
+
+  const navigate = useNavigate();
+
+  return (
+    <>
+      <Container maxWidth="md">
+        <Button
+          variant="outlined"
+          style={{ marginBottom: '35px' }}
+          onClick={() => {
+            navigate(-1);
+          }}
+        >
+          <ChevronLeftIcon /> Back Page
+        </Button>
+        <Stepper alternativeLabel activeStep={activeStep}>
+          {steps.map((step, index) => {
+            const labelProps = {};
+            const stepProps = {};
+            if (isStepFalied() && activeStep === index) {
+              labelProps.error = true;
+            }
+
+            return (
+              <Step {...stepProps} key={index}>
+                <StepLabel {...labelProps}>{step}</StepLabel>
+              </Step>
+            );
+          })}
+        </Stepper>
+
+        {activeStep === steps.length ? (
+          <div style={{ textAlign: 'center', marginTop: 15 }}>
+            <Typography variant="h3" align="center" style={{ marginTop: 25 }}>
+              Thank You
+            </Typography>
+            <Button onClick={() => navigate(-1)}>Go back</Button>
+          </div>
+        ) : (
+          <>
+            <FormProvider {...methods}>
+              <form onSubmit={methods.handleSubmit(handleNext)}>
+                {getStepContent(activeStep, coins)}
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 15 }}>
+                  <Button disabled={activeStep === 0} onClick={handleBack}>
+                    <ChevronLeftIcon /> back
+                  </Button>
+                  <Button variant="contained" color="primary" type="submit">
+                    {activeStep === steps.length - 1 ? 'Submit' : 'Next'}
+                  </Button>
+                </div>
+              </form>
+            </FormProvider>
+          </>
+        )}
+      </Container>
+      <ErrorAlert isError={isError} setError={setError} alertMsg={alertMsg} />
+      {<SuccessAlert isSuccess={isSuccess} setSuccess={setSuccess} alertMsg={alertMsg} />}
+      {isLoading && <Loader />}
+    </>
+  );
+};
+
+export default CreateMasterAccount;
